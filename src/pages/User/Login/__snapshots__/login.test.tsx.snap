@@ -292,7 +292,7 @@ exports[`Login Page should login success 1`] = `
                           style="width: 28px; height: 28px; line-height: 28px; font-size: 18px;"
                         >
                           <img
-                            src="https://gw.alipayobjects.com/zos/rmsportal/BiazfanxmamNRoxxVxka.png"
+                            src="https://api.dicebear.com/7.x/miniavs/svg?seed=Adrian"
                           />
                         </span>
                         <span
@@ -301,7 +301,7 @@ exports[`Login Page should login success 1`] = `
                           <span
                             class="anticon"
                           >
-                            Serati Ma
+                            Leo
                           </span>
                         </span>
                       </div>

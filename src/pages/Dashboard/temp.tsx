@@ -15,7 +15,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { request } from '@umijs/max';
 import { useNavigate } from '@umijs/max';
 import useMessage from 'antd/es/message/useMessage';
-import { useStyleRegister } from 'antd/es/theme/internal';
 
 const { Text } = Typography;
 
@@ -24,14 +23,13 @@ const Dashboard = () => {
   const [messageApi, contextHolder] = useMessage();
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [currentAudio, setCurrentAudio] = useState<any>(null);
+  const [duration, setDuration] = useState(0); // 修改为动态设置
+  const [currentAudio, setCurrentAudio] = useState<any>(null); // 更新类型
   const [segments, setSegments] = useState([]);
   const [waveformData, setWaveformData] = useState([]);
   const [audioFiles, setAudioFiles] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [audioUrl, setAudioUrl] = useState('');
-  const [users, setUsers] = useState([]); // 添加用户数据状态
+  const [audioUrl, setAudioUrl] = useState(''); // 添加音频URL状态
   const progressRef = useRef(null);
   const fileInputRef = useRef(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,15 +43,15 @@ const Dashboard = () => {
     '产品说明会_20230628.mp3',
   ];
 
+  // 静态用户数据
+  const userData = Array.from({ length: 12 }, (_, i) => ({
+    title: `用户 ${i + 1}`,
+    id: `user-${i + 1}`,
+  }));
+
   // 生成波形图数据
   const generateWaveform = () => Array.from({ length: 200 }, () => Math.random() * 40 + 10);
 
-  // 删除以下静态用户数据定义
-  // 静态用户数据
-  // const userData = Array.from({ length: 12 }, (_, i) => ({
-  //   title: `用户 ${i + 1}`,
-  //   id: `user-${i + 1}`,
-  // }));
   // 加载音频文件
   const loadAudio = async (audioFile) => {
     try {
@@ -238,25 +236,6 @@ const handleUpload = async () => {
       if (currentTime > segmentEndTime) setSelectedIndex(null);
     }
   }, [currentTime, selectedIndex, segments]);
-    // 获取用户列表数据
-useEffect(() => {
-  const fetchUsers = async () => {
-    try {
-      const response = await request('http://0.0.0.0:8000/v1/user/list');
-      if (response.code === 200) {
-        setUsers(response.data); // ✅ 正确地更新状态
-      } else {
-        messageApi.error('获取用户列表失败');
-      }
-    } catch (error) {
-      messageApi.error('网络错误，无法获取用户列表');
-      console.error('Failed to fetch users:', error);
-    }
-  };
-
-  fetchUsers();
-}, [messageApi]);
-
 
   return (
     <>
@@ -270,42 +249,21 @@ useEffect(() => {
         >
           <List
             itemLayout="horizontal"
-            dataSource={users}
+            dataSource={userData}
             renderItem={(item) => (
               <List.Item actions={[<Button type="text" icon={<PlaySquareOutlined />} />]}
                 style={{ cursor: 'pointer' }}
               >
                 <List.Item.Meta
-                  avatar={
-                    <Avatar
-                      size={48}
-                      src={`https://api.dicebear.com/7.x/miniavs/svg?seed=${item.username}`}
-                    />
-                  }
-                  title={
-                    <Text strong style={{ fontSize: 16 }}>
-                      {item.username}
-                    </Text>
-                  }
+                  avatar={<Avatar src={`https://api.dicebear.com/7.x/miniavs/svg?seed=${item.id}`} />}
+                  title={<Text strong>{item.title}</Text>}
                   description={
-                    <Flex vertical gap={4} style={{ marginTop: 4 }}>
-                      <Text type="secondary" style={{ fontSize: 10 }}>
-                        最近活跃：{new Date(item.updated_at).toLocaleString()}
-                      </Text>
-                      <Flex align="center" gap={8}>
-                        <Text type="secondary" style={{ fontSize: 12, width: 48 }}>
-                          音量
-                        </Text>
-                        <Slider
-                          defaultValue={50}
-                          tooltip={{ open: false }}
-                          style={{ flex: 1, margin: 0 }}
-                        />
-                      </Flex>
+                    <Flex vertical gap={4}>
+                      <Text type="secondary">最近活跃: 今天 10:30</Text>
+                      <Slider defaultValue={50} tooltip={{ open: false }} style={{ width: '80%' }} />
                     </Flex>
                   }
                 />
-
               </List.Item>
             )}
           />
@@ -363,21 +321,24 @@ useEffect(() => {
                   transition: 'all 0.2s'
                   }}
                 >
-                  <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
-                    <Flex align="center" gap={12}>
-                      <Avatar src={`https://api.dicebear.com/7.x/miniavs/svg?seed=${item.speaker}`} />
-                      <Text strong>匿名{item.speaker}</Text>
-                      <Text strong style={{ color: '#722ed1' }}>
-                        {parseFloat(item.start_time).toFixed(1)}s
-                      </Text>
-                    </Flex>
-                  </Row>
+                  <Row align="middle" style={{ width: '100%' }}>
+                    {/* 左侧 2/5 区域：头像 + 说话人 + 时间 */}
+                    <Col span={10}>
+                      <Flex align="center" gap={12}>
+                        <Avatar src={`https://api.dicebear.com/7.x/miniavs/svg?seed=${item.speaker}`} />
+                        <Text strong>匿名{item.speaker}</Text>
+                        <Text strong style={{ color: '#722ed1' }}>
+                          {parseFloat(item.start_time).toFixed(1)}s
+                        </Text>
+                      </Flex>
+                    </Col>
 
-                  <Row>
-                    <Col span={16}>
+                    {/* 右侧 3/5 区域：文本 */}
+                    <Col span={14}>
                       <Text>{item.text}</Text>
                     </Col>
                   </Row>
+
 
                 </List.Item>
               )}
@@ -538,5 +499,4 @@ useEffect(() => {
 </>
   );
 };
-
-  export default Dashboard;
+export default Dashboard;
