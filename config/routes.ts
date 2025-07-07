@@ -1,10 +1,10 @@
-﻿export default [
+export default [
   {
     path: '/user',
     layout: false,
     routes: [{ name: '登录', path: '/user/login', component: './User/Login' }],
   },
-  { path: '/home',name:'主页', icon: 'HomeTwoTone', component: './Dashboard' },
+  { path: '/home', name: '主页', icon: 'HomeTwoTone', component: './Dashboard' },
   { path: '/', redirect: '/home' },
   {
     path: '/meeting-summary/:meeting_id',

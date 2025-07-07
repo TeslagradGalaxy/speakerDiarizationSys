@@ -1,13 +1,14 @@
-import { Card, Col, Row, Typography, Spin, Alert } from 'antd';
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
 import { request } from '@umijs/max';
+import { Alert, Card, Col, Row, Spin } from 'antd';
+import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useParams } from 'react-router-dom';
 
-const { Title, Text } = Typography;
+// 移除未使用的 Title 和 Text 解构
+// const { Title, Text } = Typography;
 
 const MeetingSummary: React.FC = () => {
-  const { meeting_id } = useParams(); // ✅ 从 URL 获取 meeting_id
+  const { meeting_id } = useParams(); //从 URL 获取 meeting_id
   const [summaryData, setSummaryData] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -18,7 +19,7 @@ const MeetingSummary: React.FC = () => {
     const fetchSummary = async () => {
       try {
         setLoading(true);
-        const response = await request(`http://0.0.0.0:8000/v1/audio/summary/${meeting_id}/1`, {
+        const response = await request(`http://0.0.0.0:8000/v1/audio/summary/${meeting_id}/0`, {
           method: 'GET',
         });
 
@@ -40,12 +41,19 @@ const MeetingSummary: React.FC = () => {
   }, [meeting_id]);
 
   return (
-    <Row gutter={16} style={{ height: '100vh', overflow: 'hidden', padding: '24px' }}>
+    <Row gutter={16} style={{ height: '100vh', padding: '24px' }}>
       <Col flex="auto">
         <Card
           title="会议纪要"
-          style={{ height: '100%', background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(10px)', marginBottom: 16 }}
-          bodyStyle={{ padding: '24px', overflowY: 'auto', height: 'calc(100% - 56px)' }}
+          style={{
+            height: '100%',
+            background: 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(10px)',
+            marginBottom: 16,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+          bodyStyle={{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column' }}
         >
           {loading ? (
             <div style={{ textAlign: 'center', padding: '50px' }}>
@@ -55,7 +63,15 @@ const MeetingSummary: React.FC = () => {
           ) : error ? (
             <Alert message="错误" description={error} type="error" showIcon />
           ) : (
-            <div style={{ lineHeight: '1.8', fontSize: '14px' }}>
+            <div
+              style={{
+                padding: 24,
+                overflowY: 'auto',
+                flex: 1,
+                lineHeight: '1.8',
+                fontSize: '14px',
+              }}
+            >
               <ReactMarkdown>{summaryData}</ReactMarkdown>
             </div>
           )}
