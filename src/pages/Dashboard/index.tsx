@@ -1,5 +1,6 @@
 import {
   AudioOutlined,
+  DeleteOutlined,
   EyeOutlined,
   PauseCircleOutlined,
   PlayCircleOutlined,
@@ -106,7 +107,9 @@ const Dashboard = () => {
         } else {
           message.error('刷新分段列表失败');
         }
-        const userList = await request(`http://0.0.0.0:8000/v1/user/list`);
+        const userList = await request(
+          `http://0.0.0.0:8000/v1/user/list/${editingSegment.meeting_id}`,
+        );
         if (userList.code === 200) {
           setUsers(userList.data);
         } else {
@@ -132,10 +135,9 @@ const Dashboard = () => {
       setCurrentAudio(audioFile);
       setCurrentTime(0);
       setPlaying(false);
-      /* setWaveformData(generateWaveform()); */
       setIsLoading(true);
 
-      // 1. 先获取分段数据-------------------------------------------------------------------------------------
+      // 1. 先获取分段数据
       const segmentResponse = await request(
         `http://0.0.0.0:8000/v1/audio/process/${audioFile.meeting_id}`,
       );
@@ -146,7 +148,19 @@ const Dashboard = () => {
         messageApi.error('获取分段数据失败');
         setSegments([]);
       }
-      // 2. 获取音频文件
+
+      // 2. 添加获取用户列表数据（带meeting_id）
+      const userResponse = await request(
+        `http://0.0.0.0:8000/v1/user/list/${audioFile.meeting_id}`,
+      );
+      if (userResponse.code === 200) {
+        setUsers(userResponse.data);
+      } else {
+        messageApi.error('获取用户列表失败');
+        setUsers([]);
+      }
+
+      // 3. 获取音频文件
       const audioResponse = await fetch(`http://0.0.0.0:8000/v1/audio/get/${audioFile.meeting_id}`);
       if (audioResponse.ok) {
         const blob = await audioResponse.blob();
@@ -318,6 +332,8 @@ const Dashboard = () => {
       if (currentTime > segmentEndTime) setSelectedIndex(null);
     }
   }, [currentTime, selectedIndex, segments]);
+  // 删除以下获取用户列表的 useEffect 钩子
+  /*
   // 获取用户列表数据
   useEffect(() => {
     const fetchUsers = async () => {
@@ -336,16 +352,43 @@ const Dashboard = () => {
 
     fetchUsers();
   }, [messageApi]);
+  */
+  // 添加删除音频的函数
+  const handleDeleteAudio = async (meetingId: number) => {
+    try {
+      await fetch(`http://0.0.0.0:8000/v1/audio/delete_meeting/${meetingId}`, {
+        method: 'DELETE',
+      });
+      // 删除成功后刷新音频列表
+      setAudioFiles(audioFiles.filter((file) => file.meeting_id !== meetingId));
+      message.success('音频删除成功');
+    } catch (error) {
+      console.error('删除音频失败:', error);
+      message.error('删除失败，请重试');
+    }
+  };
 
   return (
-    <>
-      <Row gutter={16} style={{ height: '100vh' }}>
+    <div style={{ height: '100vh', overflow: 'hidden' }}>
+      {' '}
+      {/* 添加全局容器 */}
+      <Row gutter={16} style={{ height: '100%' }}>
+        {' '}
+        {/* 修改为100%高度 */}
         {/* 用户声纹库列 */}
-        <Col flex="300px" style={{ height: '100%' }}>
+        <Col
+          xs={{ flex: '180px' }}
+          sm={{ flex: '220px' }}
+          md={{ flex: '260px' }}
+          lg={{ flex: '300px' }}
+          style={{ height: '100%' }}
+        >
+          {' '}
+          {/* 使用响应式flex */}
           <Card
             title="用户声纹库"
-            styles={{ body: { padding: 0, height: '100%', overflowY: 'auto' } }}
-            style={{ height: '100%' }}
+            styles={{ body: { padding: 0, flex: 1, overflowY: 'auto' } }}
+            style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
           >
             <List
               itemLayout="horizontal"
@@ -391,7 +434,6 @@ const Dashboard = () => {
             />
           </Card>
         </Col>
-
         {/* 音频分段和播放器列 */}
         <Col
           flex={2}
@@ -400,9 +442,10 @@ const Dashboard = () => {
             flexDirection: 'column',
             height: '100%',
             minWidth: 0,
-            maxWidth: '800px', // 添加最大宽度限制
-            width: '100%', // 确保在最大宽度内自适应
-            margin: '0 auto', // 水平居中
+            // 使用条件渲染设置响应式maxWidth
+            maxWidth: window.innerWidth < 768 ? '100%' : '800px',
+            width: '100%',
+            margin: '0 auto',
           }}
         >
           <Card
@@ -461,7 +504,7 @@ const Dashboard = () => {
                                 setEditUsername(item.username);
                                 setIsEditModalOpen(true);
                               } else {
-                                message.warning('仅可编辑用户ID为1且分段大于5秒的说话人');
+                                message.warning('仅可编辑匿名用户且片段大于5秒的说话人');
                               }
                             }}
                             style={{ cursor: 'pointer' }}
@@ -544,7 +587,6 @@ const Dashboard = () => {
             </Flex>
           </Card>
         </Col>
-
         {/* 音频导入列 */}
         <Col flex="300px" style={{ height: '100%' }}>
           <Card
@@ -599,7 +641,7 @@ const Dashboard = () => {
                       type="text"
                       icon={<EyeOutlined />}
                       onClick={(e) => {
-                        e.stopPropagation(); // 防止触发上层点击事件
+                        e.stopPropagation();
                         navigate(`/meeting-summary/${file.meeting_id}`);
                       }}
                       style={{
@@ -609,6 +651,25 @@ const Dashboard = () => {
                     >
                       查看纪要
                     </Button>
+                    {/* 添加删除按钮 */}
+                    <Button
+                      type="text"
+                      icon={<DeleteOutlined />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        Modal.confirm({
+                          title: '确认删除',
+                          content: '确定要删除此音频文件吗？此操作不可恢复。',
+                          okText: '确认',
+                          cancelText: '取消',
+                          onOk: () => handleDeleteAudio(file.meeting_id),
+                        });
+                      }}
+                      style={{
+                        marginLeft: 8,
+                        color: '#ff4d4f',
+                      }}
+                    ></Button>
                   </Flex>
                 </List.Item>
               )}
@@ -637,18 +698,10 @@ const Dashboard = () => {
               <Button icon={<UploadOutlined />}>选择文件</Button>
             </Upload>
           </Form.Item>
-          <Form.Item
-            name="meeting_topic"
-            label="会议主题"
-            rules={[{ required: true, message: '请输入会议主题' }]}
-          >
+          <Form.Item name="meeting_topic" label="会议主题">
             <Input placeholder="请输入会议主题" />
           </Form.Item>
-          <Form.Item
-            name="start_time"
-            label="开始时间"
-            rules={[{ required: true, message: '请选择开始时间' }]}
-          >
+          <Form.Item name="start_time" label="开始时间">
             <DatePicker showTime style={{ width: '100%' }} placeholder="请选择开始时间" />
           </Form.Item>
         </Form>
@@ -666,7 +719,7 @@ const Dashboard = () => {
         </Form>
       </Modal>
       {contextHolder}
-    </>
+    </div>
   );
 };
 
