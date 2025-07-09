@@ -32,6 +32,7 @@ import {
   message,
 } from 'antd';
 import useMessage from 'antd/es/message/useMessage';
+import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 
 const { Text } = Typography;
@@ -89,7 +90,7 @@ const Dashboard = () => {
     formData.append('meeting_id', String(editingSegment.meeting_id));
 
     try {
-      const response = await fetch('http://0.0.0.0:8000/v1/user/add', {
+      const response = await fetch('http://localhost:8000/v1/user/add', {
         method: 'POST',
         body: formData, //用 FormData，后端才能接收到
       });
@@ -98,9 +99,9 @@ const Dashboard = () => {
       if (result.code === 200) {
         message.success('修改成功！');
         setIsEditModalOpen(false);
-
+        //刷新
         const updatedList = await request(
-          `http://0.0.0.0:8000/v1/audio/process/${editingSegment.meeting_id}`,
+          `http://localhost:8000/v1/audio/process/${editingSegment.meeting_id}`,
         );
         if (updatedList.code === 200) {
           setSegments(updatedList.data.data);
@@ -108,7 +109,7 @@ const Dashboard = () => {
           message.error('刷新分段列表失败');
         }
         const userList = await request(
-          `http://0.0.0.0:8000/v1/user/list/${editingSegment.meeting_id}`,
+          `http://localhost:8000/v1/user/list/${editingSegment.meeting_id}`,
         );
         if (userList.code === 200) {
           setUsers(userList.data);
@@ -123,12 +124,6 @@ const Dashboard = () => {
     }
   };
 
-  // 删除以下静态用户数据定义
-  // 静态用户数据
-  // const userData = Array.from({ length: 12 }, (_, i) => ({
-  //   title: `用户 ${i + 1}`,
-  //   id: `user-${i + 1}`,
-  // }));
   // 加载音频文件
   const loadAudio = async (audioFile: audios) => {
     try {
@@ -139,7 +134,7 @@ const Dashboard = () => {
 
       // 1. 先获取分段数据
       const segmentResponse = await request(
-        `http://0.0.0.0:8000/v1/audio/process/${audioFile.meeting_id}`,
+        `http://localhost:8000/v1/audio/process/${audioFile.meeting_id}`,
       );
 
       if (segmentResponse.code === 200) {
@@ -151,7 +146,7 @@ const Dashboard = () => {
 
       // 2. 添加获取用户列表数据（带meeting_id）
       const userResponse = await request(
-        `http://0.0.0.0:8000/v1/user/list/${audioFile.meeting_id}`,
+        `http://localhost:8000/v1/user/list/${audioFile.meeting_id}`,
       );
       if (userResponse.code === 200) {
         setUsers(userResponse.data);
@@ -161,7 +156,9 @@ const Dashboard = () => {
       }
 
       // 3. 获取音频文件
-      const audioResponse = await fetch(`http://0.0.0.0:8000/v1/audio/get/${audioFile.meeting_id}`);
+      const audioResponse = await fetch(
+        `http://localhost:8000/v1/audio/get/${audioFile.meeting_id}`,
+      );
       if (audioResponse.ok) {
         const blob = await audioResponse.blob();
         const url = URL.createObjectURL(blob);
@@ -203,7 +200,7 @@ const Dashboard = () => {
       formData.append('meeting_topic', values.meeting_topic);
       formData.append('start_time', values.start_time.format('YYYY-MM-DD HH:mm:ss'));
 
-      const response = await fetch('http://0.0.0.0:8000/v1/audio/add_audio', {
+      const response = await fetch('http://localhost:8000/v1/audio/add_audio', {
         method: 'POST',
         body: formData,
       });
@@ -215,7 +212,7 @@ const Dashboard = () => {
         setIsModalOpen(false);
         form.resetFields();
 
-        const updatedList = await request('http://0.0.0.0:8000/v1/audio/search_meeting');
+        const updatedList = await request('http://localhost:8000/v1/audio/search_meeting');
         if (updatedList.code === 200) setAudioFiles(updatedList.data);
       } else {
         message.error(result.msg || '上传失败');
@@ -300,7 +297,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchAudioList = async () => {
       try {
-        const response = await request('http://0.0.0.0:8000/v1/audio/search_meeting');
+        const response = await request('http://localhost:8000/v1/audio/search_meeting');
         if (response.code === 200) {
           setAudioFiles(response.data);
         } else {
@@ -322,7 +319,9 @@ const Dashboard = () => {
   };
 
   // 获取当前活跃的分段索引
-  const activeIndex = segments.findIndex((seg: any) => currentTime >= seg.start_time);
+  const activeIndex = Array.isArray(segments)
+    ? segments.findIndex((seg: any) => currentTime >= seg.start_time)
+    : -1;
   const highlightIndex = selectedIndex !== null ? selectedIndex : activeIndex;
 
   // 清除选中状态
@@ -338,7 +337,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await request('http://0.0.0.0:8000/v1/user/list');
+        const response = await request('http://localhost:8000/v1/user/list');
         if (response.code === 200) {
           setUsers(response.data); //正确地更新状态
         } else {
@@ -356,12 +355,14 @@ const Dashboard = () => {
   // 添加删除音频的函数
   const handleDeleteAudio = async (meetingId: number) => {
     try {
-      await fetch(`http://0.0.0.0:8000/v1/audio/delete_meeting/${meetingId}`, {
+      await fetch(`http://localhost:8000/v1/audio/delete_meeting/${meetingId}`, {
         method: 'DELETE',
       });
       // 删除成功后刷新音频列表
       setAudioFiles(audioFiles.filter((file) => file.meeting_id !== meetingId));
       message.success('音频删除成功');
+      setSegments([]); // 清空 segments
+      setUsers([]); // 清空 users
     } catch (error) {
       console.error('删除音频失败:', error);
       message.error('删除失败，请重试');
@@ -499,12 +500,12 @@ const Dashboard = () => {
                             onClick={(e) => {
                               (e as React.MouseEvent<HTMLElement>).stopPropagation(); // 避免触发整条点击
                               const duration = item.end_time - item.start_time;
-                              if (item.user_id === 1 && duration > 5) {
+                              if (item.user_id === 1 && duration > 3) {
                                 setEditingSegment(item);
                                 setEditUsername(item.username);
                                 setIsEditModalOpen(true);
                               } else {
-                                message.warning('仅可编辑匿名用户且片段大于5秒的说话人');
+                                message.warning('仅可编辑匿名用户且片段大于3秒的说话人');
                               }
                             }}
                             style={{ cursor: 'pointer' }}
@@ -596,7 +597,13 @@ const Dashboard = () => {
                 type="primary"
                 icon={<PlusCircleOutlined />}
                 style={{ backgroundColor: '#722ed1', borderColor: '#722ed1' }}
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => {
+                  form.setFieldsValue({
+                    meeting_topic: `匿名会议${audioFiles.length + 1}`,
+                    start_time: dayjs(), // 当前时间
+                  });
+                  setIsModalOpen(true);
+                }}
               >
                 导入
               </Button>

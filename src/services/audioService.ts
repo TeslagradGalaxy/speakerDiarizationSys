@@ -8,8 +8,8 @@ const audioRequest = async (url: string, options: any = {}) => {
       ...options,
       headers: {
         ...options.headers,
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
     });
     return response;
   } catch (error: any) {
@@ -20,13 +20,15 @@ const audioRequest = async (url: string, options: any = {}) => {
 
 export const audioApi = {
   // 获取音频列表
-  getAudioList: () => audioRequest('http://0.0.0.0:8000/v1/audio/search_meeting'),
+  getAudioList: () => audioRequest('http://localhost:8000/v1/audio/search_meeting'),
   // 处理音频分段
-  processAudio: (fileName: string) => audioRequest(`http://0.0.0.0:8000/v1/audio/process/${fileName}`),
+  processAudio: (fileName: string) =>
+    audioRequest(`http://localhost:8000/v1/audio/process/${fileName}`),
   // 上传音频文件
-  uploadAudio: (formData: FormData) => audioRequest('http://0.0.0.0:8000/v1/audio/add_audio', {
-    method: 'POST',
-    data: formData,
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  uploadAudio: (formData: FormData) =>
+    audioRequest('http://localhost:8000/v1/audio/add_audio', {
+      method: 'POST',
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
 };

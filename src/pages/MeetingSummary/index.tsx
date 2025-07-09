@@ -19,7 +19,7 @@ const MeetingSummary: React.FC = () => {
     const fetchSummary = async () => {
       try {
         setLoading(true);
-        const response = await request(`http://0.0.0.0:8000/v1/audio/summary/${meeting_id}/0`, {
+        const response = await request(`http://localhost:8000/v1/audio/summary/${meeting_id}/0`, {
           method: 'GET',
         });
 
