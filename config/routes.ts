@@ -1,4 +1,4 @@
-export default [
+﻿export default [
   {
     path: '/user',
     layout: false,
@@ -11,6 +11,7 @@ export default [
     name: '会议纪要',
     icon: 'FileTextTwoTone',
     component: './MeetingSummary',
+    hideInMenu: true,
   },
   { path: '*', layout: false, component: './404' },
 ];
