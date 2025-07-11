@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.1",
   "info": {
-    "title": "说话人识别系统",
+    "title": "智能会议分析",
     "version": "1.0.0"
   },
   "servers": [

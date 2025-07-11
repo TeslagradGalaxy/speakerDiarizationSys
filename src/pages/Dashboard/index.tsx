@@ -450,7 +450,7 @@ const Dashboard = () => {
           }}
         >
           <Card
-            title="音频分段"
+            title="音频分段解析"
             styles={{
               body: {
                 padding: '16px',
@@ -591,7 +591,7 @@ const Dashboard = () => {
         {/* 音频导入列 */}
         <Col flex="300px" style={{ height: '100%' }}>
           <Card
-            title="音频导入"
+            title="音频库"
             extra={
               <Button
                 type="primary"

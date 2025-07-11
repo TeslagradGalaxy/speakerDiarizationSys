@@ -10,8 +10,8 @@ const Footer: React.FC = () => {
       }}
       links={[
         {
-          key: '说话人识别系统',
-          title: '说话人识别系统',
+          key: '智能会议分析',
+          title: '智能会议分析',
           href: 'https://pro.ant.design',
           blankTarget: true,
         },
@@ -22,8 +22,8 @@ const Footer: React.FC = () => {
           blankTarget: true,
         },
         {
-          key: '说话人识别',
-          title: '说话人识别',
+          key: '智能会议音频',
+          title: '智能会议音频',
           href: 'https://ant.design',
           blankTarget: true,
         },

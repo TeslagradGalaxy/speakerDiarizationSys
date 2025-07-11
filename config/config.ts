@@ -73,7 +73,7 @@ export default defineConfig({
    * @name layout 插件
    * @doc https://umijs.org/docs/max/layout-menu
    */
-  title: '说话人识别系统',
+  title: '智能会议分析',
   layout: {
     locale: true,
     ...defaultSettings,

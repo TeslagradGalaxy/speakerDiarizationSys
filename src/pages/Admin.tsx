@@ -23,7 +23,7 @@ const Admin: React.FC = () => {
             textAlign: 'center',
           }}
         >
-          <SmileTwoTone /> 说话人识别系统 <HeartTwoTone twoToneColor="#eb2f96" /> You
+          <SmileTwoTone /> 智能会议分析 <HeartTwoTone twoToneColor="#eb2f96" /> You
         </Typography.Title>
       </Card>
       <p
