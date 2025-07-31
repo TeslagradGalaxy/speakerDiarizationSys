@@ -67,6 +67,20 @@ declare namespace API {
     autoLogin?: boolean;
     type?: string;
   };
+  type LoginUserVO = {
+    username: string;
+    user_id: number;
+  };
+  type UserLoginRequest = {
+    username: string;
+    password: string;
+  };
+
+  type BaseResponseLoginUserVO_ = {
+    code?: number;
+    msg?: string;
+    data?: LoginUserVO;
+  };
 
   type ErrorResponse = {
     /** 业务约定的错误码 */

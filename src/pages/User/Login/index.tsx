@@ -1,13 +1,14 @@
 import { Footer } from '@/components';
-import { login } from '@/services/ant-design-pro/api';
+import { getLoginUserUsingGET, UserLogin } from '@/services/ant-design-pro/api';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { LoginForm, ProFormText } from '@ant-design/pro-components';
-import { Helmet, history, useModel } from '@umijs/max';
+import { Helmet, useModel, useNavigate } from '@umijs/max';
 import { Alert, message, Tabs } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useState } from 'react';
 import { flushSync } from 'react-dom';
 import Settings from '../../../../config/defaultSettings';
+
 const useStyles = createStyles(({ token }) => {
   return {
     action: {
@@ -63,8 +64,11 @@ const Login: React.FC = () => {
   const [type, setType] = useState<string>('account');
   const { initialState, setInitialState } = useModel('@@initialState');
   const { styles } = useStyles();
+  const navigate = useNavigate(); // 添加路由钩子
+
   const fetchUserInfo = async () => {
-    const userInfo = await initialState?.fetchUserInfo?.();
+    const userInfo = await getLoginUserUsingGET();
+    console.log(userInfo);
     if (userInfo) {
       flushSync(() => {
         setInitialState((s) => ({
@@ -74,28 +78,24 @@ const Login: React.FC = () => {
       });
     }
   };
-  const handleSubmit = async (values: API.LoginParams) => {
+  const handleSubmit = async (values: API.UserLoginRequest) => {
     try {
-      // 登录
-      const msg = await login({
-        ...values,
-        type,
-      });
-      if (msg.status === 'ok') {
-        const defaultLoginSuccessMessage = '登录成功！';
-        message.success(defaultLoginSuccessMessage);
-        await fetchUserInfo();
+      const msg = await UserLogin(values);
+      if (msg.code === 200) {
+        message.success('登录成功！');
+        // 直接使用登录接口返回的用户信息
+        flushSync(() => {
+          setInitialState((s) => ({ ...s, currentUser: msg.data }));
+        });
+        // 无需调用fetchUserInfo，直接跳转
         const urlParams = new URL(window.location.href).searchParams;
-        history.push(urlParams.get('redirect') || '/');
+        navigate(urlParams.get('redirect') || '/');
         return;
+      } else {
+        message.error(msg.msg);
       }
-      console.log(msg);
-      // 如果失败去设置用户错误信息
-      setUserLoginState(msg);
     } catch (error) {
-      const defaultLoginFailureMessage = '登录失败，请重试！';
-      console.log(error);
-      message.error(defaultLoginFailureMessage);
+      message.error('登录失败，请重试！');
     }
   };
   const { status, type: loginType } = userLoginState;
@@ -125,7 +125,7 @@ const Login: React.FC = () => {
             autoLogin: true,
           }}
           onFinish={async (values) => {
-            await handleSubmit(values as API.LoginParams);
+            await handleSubmit(values as API.UserLoginRequest);
           }}
         >
           <Tabs

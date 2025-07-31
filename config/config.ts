@@ -145,4 +145,6 @@ export default defineConfig({
   },
   esbuildMinifyIIFE: true,
   requestRecord: {},
+  // 添加或确认publicPath配置
+  publicPath: '/',
 });

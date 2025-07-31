@@ -1,12 +1,9 @@
-import { AvatarDropdown, AvatarName, Question } from '@/components';
-import { currentUser as queryCurrentUser } from '@/services/ant-design-pro/api';
+import { Question } from '@/components';
 import { LinkOutlined } from '@ant-design/icons';
-import type { Settings as LayoutSettings } from '@ant-design/pro-components';
-import { SettingDrawer } from '@ant-design/pro-components';
 import type { RunTimeLayoutConfig } from '@umijs/max';
 import { history, Link } from '@umijs/max';
-import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
+import { getLoginUserUsingGET } from './services/ant-design-pro/api';
 const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
 
@@ -15,33 +12,30 @@ const loginPath = '/user/login';
  * */
 export async function getInitialState(): Promise<{
   settings?: Partial<LayoutSettings>;
-  currentUser?: API.CurrentUser;
-  loading?: boolean;
-  fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
+  currentUser?: API.LoginUserVO;
 }> {
-  const fetchUserInfo = async () => {
-    try {
-      const msg = await queryCurrentUser({
-        skipErrorHandler: true,
-      });
-      return msg.data;
-    } catch (error) {
-      history.push(loginPath);
-    }
-    return undefined;
-  };
-  // 如果不是登录页面，执行
+  // 简化初始化逻辑，不检查token
   const { location } = history;
   if (location.pathname !== loginPath) {
-    const currentUser = await fetchUserInfo();
+    // 开发环境模拟登录状态
+    /*     if (isDev) {
+      return {
+        currentUser: {
+          username: '测试用户',
+          user_id: 1,
+          // 其他必要的用户信息字段
+        },
+        settings: defaultSettings as Partial<LayoutSettings>,
+      };
+    } */
+    // 生产环境仍可保留原有逻辑
+    const currentUser = await getLoginUserUsingGET();
     return {
-      fetchUserInfo,
       currentUser,
       settings: defaultSettings as Partial<LayoutSettings>,
     };
   }
   return {
-    fetchUserInfo,
     settings: defaultSettings as Partial<LayoutSettings>,
   };
 }
@@ -50,15 +44,18 @@ export async function getInitialState(): Promise<{
 export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) => {
   return {
     actionsRender: () => [<Question key="doc" />],
-    avatarProps: {
-      src: initialState?.currentUser?.avatar,
+    /*     avatarProps: {
+      src: `https://api.dicebear.com/7.x/miniavs/svg?seed=Leo`,
       title: <AvatarName />,
       render: (_, avatarChildren) => {
         return <AvatarDropdown>{avatarChildren}</AvatarDropdown>;
       },
-    },
+    }, */
+    // 添加以下两行强制设置顶部布局
+    layout: 'top',
+    logo: '/logo.svg',
     waterMarkProps: {
-      content: initialState?.currentUser?.name,
+      content: 'Leo',
     },
     /*   footerRender: () => <Footer />, */
     onPageChange: () => {
@@ -105,7 +102,8 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
       return (
         <>
           {children}
-          {isDev && (
+          {/* 临时注释掉设置抽屉避免配置覆盖 */}
+          {/* {isDev && (
             <SettingDrawer
               disableUrlParams
               enableDarkTheme
@@ -117,7 +115,7 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
                 }));
               }}
             />
-          )}
+          )} */}
         </>
       );
     },

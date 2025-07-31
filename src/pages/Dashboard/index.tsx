@@ -299,7 +299,7 @@ const Dashboard = () => {
       try {
         const response = await request('http://localhost:8000/v1/audio/search_meeting');
         if (response.code === 200) {
-          setAudioFiles(response.data);
+          setAudioFiles(response.data || []); // 确保始终为数组
         } else {
           messageApi.error('获取音频列表失败');
         }
