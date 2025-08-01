@@ -1,3 +1,4 @@
+// 在文件顶部导入Progress组件
 import {
   AudioOutlined,
   DeleteOutlined,
@@ -23,6 +24,7 @@ import {
   Input,
   List,
   Modal,
+  Progress,
   Row,
   Slider,
   Space,
@@ -56,6 +58,7 @@ interface audios {
   meeting_topic: string;
   audio_filename: string;
   created_at: string;
+  duration: number;
 }
 
 // 在组件内初始化messageApi
@@ -76,6 +79,8 @@ const Dashboard = () => {
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   /*   const fileInputRef = useRef<number | null>(null); */
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0); // 添加上传进度状态
+  const [isUploading, setIsUploading] = useState(false); // 添加上传中状态
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement | null>(null); // 添加音频元素引用
@@ -138,7 +143,11 @@ const Dashboard = () => {
       );
 
       if (segmentResponse.code === 200) {
-        setSegments(segmentResponse.data.data);
+        setSegments(segmentResponse.data);
+        //segmentResponse.data==1
+      } else if (segmentResponse.code === 202) {
+        setSegments(segmentResponse.data);
+        messageApi.info('正在处理音频...');
       } else {
         messageApi.error('获取分段数据失败');
         setSegments([]);
@@ -200,24 +209,49 @@ const Dashboard = () => {
       formData.append('meeting_topic', values.meeting_topic);
       formData.append('start_time', values.start_time.format('YYYY-MM-DD HH:mm:ss'));
 
-      const response = await fetch('http://localhost:8000/v1/audio/add_audio', {
-        method: 'POST',
-        body: formData,
+      setIsUploading(true);
+      setUploadProgress(0);
+
+      // 使用XMLHttpRequest替代fetch以支持上传进度
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', 'http://localhost:8000/v1/audio/add_audio');
+
+      // 监听上传进度
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(percent);
+        }
       });
 
-      const result = await response.json();
+      xhr.onload = async () => {
+        setIsUploading(false);
+        if (xhr.status === 200) {
+          const result = JSON.parse(xhr.responseText);
+          if (result.code === 200) {
+            message.success('音频上传成功');
+            setIsModalOpen(false);
+            form.resetFields();
+            setUploadProgress(0);
 
-      if (result.code === 200) {
-        message.success('音频上传成功');
-        setIsModalOpen(false);
-        form.resetFields();
+            const updatedList = await request('http://localhost:8000/v1/audio/search_meeting');
+            if (updatedList.code === 200) setAudioFiles(updatedList.data);
+          } else {
+            message.error(result.msg || '上传失败');
+          }
+        } else {
+          message.error('上传失败，网络错误');
+        }
+      };
 
-        const updatedList = await request('http://localhost:8000/v1/audio/search_meeting');
-        if (updatedList.code === 200) setAudioFiles(updatedList.data);
-      } else {
-        message.error(result.msg || '上传失败');
-      }
+      xhr.onerror = () => {
+        setIsUploading(false);
+        message.error('上传失败，网络错误');
+      };
+
+      xhr.send(formData);
     } catch (error) {
+      setIsUploading(false);
       console.error(error);
       message.error('提交失败，请检查表单内容');
     }
@@ -387,7 +421,7 @@ const Dashboard = () => {
           {' '}
           {/* 使用响应式flex */}
           <Card
-            title="用户声纹库"
+            title="说话人列表"
             styles={{ body: { padding: 0, flex: 1, overflowY: 'auto' } }}
             style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
           >
@@ -450,7 +484,7 @@ const Dashboard = () => {
           }}
         >
           <Card
-            title="音频分段解析"
+            title="音频文本"
             styles={{
               body: {
                 padding: '16px',
@@ -530,7 +564,7 @@ const Dashboard = () => {
               />
             )}
           </Card>
-
+          {/* 播放器 */}
           <Card style={{ flex: 1 }}>
             {/* 添加隐藏的音频元素 */}
             <audio
@@ -641,7 +675,7 @@ const Dashboard = () => {
                         {file.meeting_topic}
                       </Text>
                       <Text type="secondary" style={{ fontSize: '11px' }}>
-                        {new Date(file.created_at).toLocaleString()}
+                        {formatTime(file.duration)}
                       </Text>
                     </div>
                     <Button
@@ -687,9 +721,18 @@ const Dashboard = () => {
       <Modal
         title="导入音频"
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        onCancel={() => {
+          if (!isUploading) {
+            setIsModalOpen(false);
+            setUploadProgress(0);
+          } else {
+            message.warning('上传中，请勿关闭对话框');
+          }
+        }}
         onOk={handleUpload}
         okText="上传"
+        okButtonProps={{ disabled: isUploading }}
+        cancelButtonProps={{ disabled: isUploading }}
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -701,16 +744,39 @@ const Dashboard = () => {
             }}
             rules={[{ required: true, message: '请选择音频文件' }]}
           >
-            <Upload beforeUpload={() => false} maxCount={1}>
-              <Button icon={<UploadOutlined />}>选择文件</Button>
+            <Upload beforeUpload={() => false} maxCount={1} disabled={isUploading}>
+              <Button icon={<UploadOutlined />} disabled={isUploading}>
+                选择文件
+              </Button>
             </Upload>
           </Form.Item>
-          <Form.Item name="meeting_topic" label="会议主题">
-            <Input placeholder="请输入会议主题" />
+          <Form.Item name="meeting_topic" label="会议主题" rules={[{ required: true }]}>
+            <Input placeholder="请输入会议主题" disabled={isUploading} />
           </Form.Item>
-          <Form.Item name="start_time" label="开始时间">
-            <DatePicker showTime style={{ width: '100%' }} placeholder="请选择开始时间" />
+          <Form.Item name="start_time" label="开始时间" rules={[{ required: true }]}>
+            <DatePicker
+              showTime
+              style={{ width: '100%' }}
+              placeholder="请选择开始时间"
+              disabled={isUploading}
+            />
           </Form.Item>
+
+          {/* 添加上传进度条 */}
+          {isUploading && (
+            <div style={{ marginTop: 20 }}>
+              <p>上传进度: {uploadProgress}%</p>
+              <Progress
+                percent={uploadProgress}
+                status="active"
+                strokeColor={{
+                  '0%': '#ff4d4f', // 红色
+                  '50%': '#faad14', // 黄色
+                  '100%': '#52c41a', // 绿色
+                }}
+              />
+            </div>
+          )}
         </Form>
       </Modal>
       <Modal
